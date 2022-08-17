@@ -1,0 +1,94 @@
+"""
+paddle的苹果叶片病害数据。没有健康叶片。
+https://aistudio.baidu.com/aistudio/datasetdetail/11591
+周敏敏. 基于迁移学习的苹果叶面病害Android检测系统研究[D].西北农林科技大学,2019.
+"""
+
+
+#对数据集生成固定格式的列表，格式为：图片的路径 <Tab> 图片类别的标签
+import json
+import os
+import os.path as osp
+
+def create_data_list(data_root_path):
+    with open(osp.join(data_root_path, "test.list"), 'w') as f:
+        pass
+    with open(osp.join(data_root_path, "train.list"), 'w') as f:
+        pass
+    # 所有类别的信息
+    class_detail = []
+    # 获取所有类别
+    class_dirs = os.listdir(data_root_path)
+    # 类别标签
+    class_label = 0
+    # 获取总类别的名称
+    father_paths = data_root_path.split('/')
+    while True:
+        if father_paths[len(father_paths) - 1] == '':
+            del father_paths[len(father_paths) - 1]
+        else:
+            break
+    father_path = father_paths[len(father_paths) - 1]
+
+    all_class_images = 0
+    other_file = 0
+    # 读取每个类别
+    for class_dir in class_dirs:
+        if class_dir == 'test.list' or class_dir == "train.list" or class_dir == 'readme.json':
+            other_file += 1
+            continue
+        print('正在读取类别：%s' % class_dir)
+        # 每个类别的信息
+        class_detail_list = {}
+        test_sum = 0
+        trainer_sum = 0
+        # 统计每个类别有多少张图片
+        class_sum = 0
+        # 获取类别路径
+        path = data_root_path + "/" + class_dir
+        # 获取所有图片
+        img_paths = os.listdir(path)
+        for img_path in img_paths:
+            # 每张图片的路径
+            name_path = class_dir + '/' + img_path
+            # 如果不存在这个文件夹,就创建
+            if not os.path.exists(data_root_path):
+                os.makedirs(data_root_path)
+            # 划分训练集和测试集，各个类别中每隔十张选取一张作为测试集，并将数据集生成固定格式列表。
+            if class_sum % 10 == 0:
+                test_sum += 1
+                with open(osp.join(data_root_path, "test.list"), 'a') as f:
+                    f.write(name_path + "\t%d" % class_label + "\n")
+            else:
+                trainer_sum += 1
+                with open(osp.join(data_root_path, "train.list"), 'a') as f:
+                    f.write(name_path + "\t%d" % class_label + "\n")
+            class_sum += 1
+            all_class_images += 1
+        # 说明的json文件的class_detail数据
+        class_detail_list['class_name'] = class_dir
+        class_detail_list['class_label'] = class_label
+        class_detail_list['class_test_images'] = test_sum
+        class_detail_list['class_trainer_images'] = trainer_sum
+        class_detail.append(class_detail_list)
+        class_label += 1
+    # 获取类别数量
+    all_class_sum = len(class_dirs) - other_file
+    # 说明的json文件信息
+    readjson = {}
+    readjson['all_class_name'] = father_path
+    readjson['all_class_sum'] = all_class_sum
+    readjson['all_class_images'] = all_class_images
+    readjson['class_detail'] = class_detail
+    jsons = json.dumps(readjson, sort_keys=-True, indent=4, separators=(',', ': '))
+    with open(osp.join(data_root_path, "readme.json"), 'w') as f:
+        f.write(jsons)
+    print('图像列表已生成')
+
+
+#生成图像的列表
+if __name__ == '__main__':
+    # 把生产的数据列表都放在自己的总类别文件夹中
+    data_root_path = "E:/dataset/苹果叶部病理图像_飞桨/original/original"
+    create_data_list(data_root_path)
+
